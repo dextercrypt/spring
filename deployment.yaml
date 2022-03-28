@@ -1,0 +1,21 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+ name: microk8sdeploy
+ labels:
+  app: micro
+spec:
+ selector:
+  matchLabels:
+   app: micro
+ template:
+  metadata:
+   name: microk8spod
+   labels:
+    app: micro
+  spec:
+   containers:
+   - name: microk8scontainer
+     image: 10141730/microk8s:v_${BUILD_NUMBER}
+     ports:
+     - containerPort: 8080
