@@ -33,15 +33,15 @@ pipeline {
                 echo "Copy new build file to Docker directory"
                 sh "sudo cp /home/jenkins/jenkins_slave/workspace/spring-app/spring/build/libs/spring-boot-with-prometheus-0.1.0.jar /home/jenkins/jenkins_slave/workspace/spring-app/spring/DOCKER/"
                 sh '''cd /home/jenkins/jenkins_slave/workspace/spring-app/spring/DOCKER
-                sudo docker build -t imagename:tag .
+                sudo docker build -t user/imagename:tag .
                 echo $DOCKERHUB_CREDENTIALS_PSW |sudo docker login -u $DOCKERHUB_CREDENTIALS_USR --password-stdin
-                sudo docker push imagename:tag'''
+                sudo docker push user/imagename:tag'''
             }
         }
         stage('Deploying Spring App using Docker') {
             steps {
                 sh''' ssh -i "$DEPLOYMENTSEVER_SSH" $DEPLOYMENTSERVER_SSH_USR@ec2
-                sudo docker pull imagename:tag
+                sudo docker pull user/imagename:tag
                 sudo docker run --name spring_prom_app -d -p 8080:8080 imagename:tag
                 sudo docker ps'''
             }
