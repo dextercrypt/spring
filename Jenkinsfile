@@ -9,7 +9,7 @@ pipeline {
         stage('Creating Build') { 
             steps {
                 echo 'Delete old jar file'
-		sh"pwd && ls"
+		sh"sudo rm -rf /home/jenkins/jenkins_slave/workspace/spring-app-scm-pipeline/* && ls"
                 sh '''cd build/libs
                 sudo rm -rf spring-boot-with-prometheus-0.1.0.jar
                 ls
