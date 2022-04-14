@@ -1,63 +1,50 @@
 pipeline {
-    agent any
+    agent { label 'jenkins_node' }
+    
+    environment {
+		DOCKERHUB_CREDENTIALS=credentials('dockerhubcred')
+        sshagent=credentials('deploymentserver')
+    }
     stages {
-        stage('list repo files') {
+        stage('Cloning Git Repo') {
+           steps {
+                sh'''git clone https://github.com/dextercrypt/spring.git
+                ls
+                pwd'''
+           }
+        }
+        stage('Creating Build') { 
             steps {
-                script {
-                    sh "ls"
-                }
+                echo 'Delete old jar file'
+                sh '''cd /home/jenkins/jenkins_slave/workspace/spring-app/spring/build/libs
+                sudo rm -rf spring-boot-with-prometheus-0.1.0.jar
+                ls
+                cd ../..
+                ./gradlew build
+                echo "Checking if file is created"
+                ls /home/jenkins/jenkins_slave/workspace/spring-app/spring/build/libs'''
             }
         }
-        stage('show working directory') {
+        stage('Docker File Building') {
             steps {
-                script {
-                    sh "pwd"
-                }
+                echo 'Removing old jar file from docker directory'
+                sh "cd /home/jenkins/jenkins_slave/workspace/spring-app/spring"
+                sh "sudo rm -rf /home/jenkins/jenkins_slave/workspace/spring-app/spring/DOCKER/spring-boot-with-prometheus-0.1.0.jar"
+                echo "Copy new build file to Docker directory"
+                sh "sudo cp /home/jenkins/jenkins_slave/workspace/spring-app/spring/build/libs/spring-boot-with-prometheus-0.1.0.jar /home/jenkins/jenkins_slave/workspace/spring-app/spring/DOCKER/"
+                sh '''cd /home/jenkins/jenkins_slave/workspace/spring-app/spring/DOCKER
+                sudo docker build -t dextercrypt/spring:${BUILD_NUMBER} .
+                echo $DOCKERHUB_CREDENTIALS_PSW |sudo docker login -u $DOCKERHUB_CREDENTIALS_USR --password-stdin
+                sudo docker push dextercrypt/spring:${BUILD_NUMBER}'''
             }
         }
-        stage('creating build') {
+       stage('Deploying Spring App using Docker') {
             steps {
-                script {
-                    sh "/home/madhur/Desktop/ENVEU/spring/gradlew clean build"
-                }
-            }
-        }
-        stage('list build contents') {
-            steps {
-                script {
-                    sh "ls build/libs"
-                }
-            }
-        }
-        stage ('remove old jar from Docker') {
-            steps {
-                script {
-                    sh "sudo rm DOCKER/spring-boot-with-prometheus-0.1.0.jar"
-                }
-            }
-        }
-        stage('copy buid file to docker build context') {
-            steps {
-                script {
-                    sh "sudo cp build/libs/spring-boot-with-prometheus-0.1.0.jar DOCKER/"
-                }
-            }
-        }
-        stage('build docker image and pushing to dockerhub') {
-            steps {
-                script {
-                    sh "cd DOCKER; sudo docker build -t 10141730/microk8s:v_${BUILD_NUMBER} ."
-                    sh "sudo docker push 10141730/microk8s:v_${BUILD_NUMBER}"
-                }
-            }
-        }
-        stage('deploying on microk8s') {
-            steps {
-            	script {
-                    sh "cd /home/madhur/"
-                    sh "sudo microk8s.helm3 upgrade --install demochart /home/madhur/demochart/ --set image.tag=v_${BUILD_NUMBER}"
-                    }
+                sshagent(credentials:['deploymentserver']) {
+                sh''' ssh -o StrictHostKeyChecking=no ubuntu@ec2-52-71-109-107.compute-1.amazonaws.com "sudo docker pull dextercrypt/spring:${BUILD_NUMBER} && sudo docker rm -f spring_prom_app && sudo docker run --restart=always --name spring_prom_app -d -p 8080:8080 dextercrypt/spring:${BUILD_NUMBER} && sudo docker ps && cat deployconfirm && ls && pwd"
+                '''
             }
         }
     }
+  }
 }
