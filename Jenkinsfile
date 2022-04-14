@@ -34,7 +34,7 @@ pipeline {
        stage('Deploying Spring App using Docker') {
             steps {
                 sshagent(credentials:['deploymentserver']) {
-                sh''' ssh -o StrictHostKeyChecking=no ubuntu@ec2-52-71-109-107.compute-1.amazonaws.com "sudo docker pull dextercrypt/spring:${BUILD_NUMBER} && sudo docker rm -f spring_prom_app && sudo docker run --restart=always --name spring_prom_app -d -p 8080:8080 dextercrypt/spring:${BUILD_NUMBER} && sudo docker ps && cat deployconfirm && ls && pwd"
+                sh''' ssh -o StrictHostKeyChecking=no ubuntu@ec2-18-212-176-109.compute-1.amazonaws.com "sudo docker pull dextercrypt/spring:${BUILD_NUMBER} && sudo docker rm -f spring_prom_app && sudo docker run --restart=always --name spring_prom_app -d -p 8080:8080 dextercrypt/spring:${BUILD_NUMBER} && sudo docker ps && cat deployconfirm && ls && pwd"
                 '''
             }
         }
