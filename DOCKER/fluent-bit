@@ -1,0 +1,106 @@
+#!/bin/bash
+
+SERVICE_NAME="fluent-bit"
+SERVICE_PATH=/opt/fluent-bit/bin/$SERVICE_NAME
+SERVICE_ARG="-c /etc/fluent-bit/fluent-bit.conf"
+SERVICE_COMMAND="$SERVICE_PATH $SERVICE_ARG"
+PID=$(pidof /opt/fluent-bit/bin/fluent-bit)
+PROC='pgrep -f fluent-bit'
+
+export PID
+## Do not change above mentioned parameters.
+
+
+start() {
+        if [ -z $(pidof /opt/fluent-bit/bin/fluent-bit) ]
+        then
+        echo "Starting $SERVICE_NAME"
+        $SERVICE_COMMAND > /opt/fluent-bit/bin/flb.logs 2>&1 &
+        sleep 2;
+        echo -e "$SERVICE_NAME started \nPID $(pidof /opt/fluent-bit/bin/fluent-bit)"
+else
+        echo "$SERVICE_NAME is already running"
+
+fi
+
+return 1
+
+}
+
+stop() {
+        if [ -n "$(pidof /opt/fluent-bit/bin/fluent-bit)" ]
+       then
+       echo "Stopping $SERVICE_NAME"
+       kill -9 $(pidof /opt/fluent-bit/bin/fluent-bit)
+       until [ -z "$(pidof /opt/fluent-bit/bin/fluent-bit)" ]
+do
+        echo "Checking if service has stopped"
+        sleep 5;
+done
+       sleep 5;
+       echo "$SERVICE_NAME stopped"
+       elif [ -z "$(pidof /opt/fluent-bit/bin/fluent-bit)" ]
+       then
+       echo "$SERVICE_NAME is not running."
+else
+:
+fi
+
+#return 1
+}
+
+restart() {
+        echo "Current PID $(pidof /opt/fluent-bit/bin/fluent-bit)"
+        sleep 2;
+        stop
+        sleep 2;
+        start
+        sleep 2;
+        echo "$SERVICE_NAME restarted"
+        echo "New PID $(pidof /opt/fluent-bit/bin/fluent-bit)"
+
+}
+
+pid() {
+        if [ -n "$(pidof /opt/fluent-bit/bin/fluent-bit)" ]; then
+        echo "$PID"
+else
+        echo "$SERVICE_NAME is not running."
+fi
+}
+status() {
+        if [ -n "$(pidof /opt/fluent-bit/bin/fluent-bit)" ]
+        then
+        echo "STATUS: ACTIVE/RUNNING"
+        cat /opt/fluent-bit/bin/flb.logs
+else
+        echo "STATUS: INACTIVE"
+fi
+}
+
+case "$1" in
+start)
+        start
+        ;;
+stop)
+        stop
+        ;;
+restart)
+        restart
+        ;;
+pid)
+        pid
+        ;;
+status)
+        status
+        ;;
+*)
+        echo "Usage: {start|stop|restart|pid|status}"
+        exit 1
+        ;;
+
+esac
+
+exit 0
+
+:
