@@ -1,0 +1,12 @@
+FROM openjdk:8
+RUN apt-get update && apt-get install sudo && apt-get install net-tools -y
+RUN curl https://raw.githubusercontent.com/fluent/fluent-bit/master/install.sh | sh
+COPY spring-boot-with-prometheus-0.1.0.jar /spring-boot-with-prometheus-0.1.0.jar
+COPY fluent-bit /etc/init.d/fluent-bit
+RUN chmod +x /etc/init.d/fluent-bit
+COPY fluent-bit.conf /etc/fluent-bit/fluent-bit.conf
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+ENTRYPOINT ["/entrypoint.sh"]
+
+
